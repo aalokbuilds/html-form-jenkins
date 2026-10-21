@@ -2,6 +2,9 @@
 from pathlib import Path
 from html.parser import HTMLParser
 
+HTML_FILE = Path(__file__).parent / "index.html"
+
+
 class FormParser(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -14,33 +17,61 @@ class FormParser(HTMLParser):
 
         if tag == "form":
             self.forms.append(attrs)
-
-        if tag == "input":
+        elif tag == "input":
             self.inputs.append(attrs)
-
-        if tag == "button":
+        elif tag == "button":
             self.buttons.append(attrs)
 
-def test_contact_form():
-    html = Path("index.html").read_text(encoding="utf-8")
+
+def load_form():
+    assert HTML_FILE.exists(), "index.html does not exist"
+
     parser = FormParser()
-    parser.feed(html)
+    parser.feed(HTML_FILE.read_text(encoding="utf-8"))
+    return parser
 
+
+def test_form_exists():
+    parser = load_form()
     assert any(
-        f.get("id") == "contactForm"
-        for f in parser.forms
-    ), "Contact form is missing"
+        form.get("id") == "contactForm"
+        for form in parser.forms
+    )
 
-    fields = {i.get("id"): i for i in parser.inputs}
 
-    assert fields["name"]["type"] == "text"
-    assert fields["email"]["type"] == "email"
-    assert fields["contact"]["type"] == "tel"
-
-    for field in ("name", "email", "contact"):
-        assert "required" in fields[field]
-
+def test_name_field():
+    parser = load_form()
     assert any(
-        b.get("type") == "submit"
-        for b in parser.buttons
-    ), "Submit button is missing"
+        field.get("id") == "name"
+        and field.get("type") == "text"
+        and "required" in field
+        for field in parser.inputs
+    )
+
+
+def test_email_field():
+    parser = load_form()
+    assert any(
+        field.get("id") == "email"
+        and field.get("type") == "email"
+        and "required" in field
+        for field in parser.inputs
+    )
+
+
+def test_contact_number_field():
+    parser = load_form()
+    assert any(
+        field.get("id") == "contact"
+        and field.get("type") == "tel"
+        and "required" in field
+        for field in parser.inputs
+    )
+
+
+def test_submit_button():
+    parser = load_form()
+    assert any(
+        button.get("type") == "submit"
+        for button in parser.buttons
+    )
